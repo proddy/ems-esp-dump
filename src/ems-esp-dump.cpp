@@ -5,6 +5,8 @@
 #include <user_interface.h>
 
 void ems_parseTelegram(uint8_t * telegram, uint8_t length);
+
+
 #define EMSUART_UART 0      // UART 0
 #define EMSUART_CONFIG 0x1c // 8N1 (8 bits, no stop bits, 1 parity)
 #define EMSUART_BAUD 9600   // uart baud rate for the EMS circuit
@@ -122,8 +124,8 @@ void ICACHE_FLASH_ATTR emsuart_init() {
     pEMSRxBuf = paEMSRxBuf[0]; // preset EMS Rx Buffer
 
     // pin settings
-    PIN_PULLUP_DIS(PERIPHS_IO_MUX_U0TXD_U);
-    PIN_FUNC_SELECT(PERIPHS_IO_MUX_U0TXD_U, FUNC_U0RXD);
+    //PIN_PULLUP_DIS(PERIPHS_IO_MUX_U0TXD_U);
+    //PIN_FUNC_SELECT(PERIPHS_IO_MUX_U0TXD_U, FUNC_U0RXD);
     PIN_PULLUP_DIS(PERIPHS_IO_MUX_U0RXD_U);
     PIN_FUNC_SELECT(PERIPHS_IO_MUX_U0RXD_U, FUNC_U0RXD);
 
@@ -212,13 +214,15 @@ void ems_parseTelegram(uint8_t * telegram, uint8_t length) {
 }
 
 void setup() {
-    emsuart_init();
     Serial.begin(115200);
-    Serial.println("Ready...");
+    Serial.println("UART init...");
+    emsuart_init();
+    Serial.println("Ready.");
 }
 
 
 void loop() {
-    // optional delay
-    // delay(1);
+    Serial.println(".");
+
+    delay(500); // optional delay
 }
