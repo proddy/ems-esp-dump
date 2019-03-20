@@ -19,6 +19,11 @@ void ems_parseTelegram(uint8_t * telegram, uint8_t length);
 #define EMSUART_recvTaskPrio 1
 #define EMSUART_recvTaskQueueLen 64
 
+uint32_t count;
+
+uint8_t * serialBuffer;
+uint32_t  serialBuffer_len = 0;
+
 typedef struct {
     uint8_t writePtr;
     uint8_t buffer[EMS_MAXBUFFERSIZE];
@@ -166,6 +171,25 @@ void ICACHE_FLASH_ATTR emsuart_init() {
     system_uart_swap();
 }
 
+
+/*
+ * stop UART0 driver
+ */
+void ICACHE_FLASH_ATTR emsuart_stop() {
+    ETS_UART_INTR_DISABLE();
+    //ETS_UART_INTR_ATTACH(NULL, NULL);
+    //system_uart_swap(); // to be sure, swap Tx/Rx back.
+    //detachInterrupt(digitalPinToInterrupt(D7));
+    //noInterrupts();
+}
+
+/*
+ * re-start UART0 driver
+ */
+void ICACHE_FLASH_ATTR emsuart_start() {
+    ETS_UART_INTR_ENABLE();
+}
+
 // calculate CRC
 uint8_t _crcCalculator(uint8_t * data, uint8_t len) {
     uint8_t crc = 0;
@@ -190,8 +214,17 @@ char * _hextoa(uint8_t value, char * buffer) {
     return buffer;
 }
 
-// entry point
 void ems_parseTelegram(uint8_t * telegram, uint8_t length) {
+    // add length first
+    *serialBuffer = length;
+    // copy bytes over to buffer
+    ets_memcpy(serialBuffer, telegram, length);
+    serialBuffer += length;
+    serialBuffer_len += length + 1;
+}
+
+// entry point
+void ems_parseTelegram2(uint8_t * telegram, uint8_t length) {
     if (length == 1) {
         Serial.printf("Poll %02X\n", telegram[0]);
         return;
@@ -214,15 +247,37 @@ void ems_parseTelegram(uint8_t * telegram, uint8_t length) {
 }
 
 void setup() {
+    // reserve buffer space
+    serialBuffer = (uint8_t *)malloc(10000); // massive
+
     Serial.begin(115200);
     Serial.println("UART init...");
     emsuart_init();
+    emsuart_stop();
     Serial.println("Ready.");
 }
 
 
 void loop() {
-    Serial.println(".");
+    Serial.print("Type in # seconds: ");
+    while (Serial.available() == 0) {
+    }
+    count = Serial.parseInt();
+    Serial.printf("Capturing %d seconds of UART data...", count);
+
+    serialBuffer_len = 0;
+    uint32_t timenow = millis();
+    emsuart_start();
+    Serial.end();
+
+    // go silent for a bit
+    while ((millis() - timenow) < count * 1000)
+        ;
+    emsuart_stop();
+    Serial.begin(115200);
+
+    Serial.printf("I'm back. Got %d of data", serialBuffer_len);
+
 
     delay(500); // optional delay
 }
